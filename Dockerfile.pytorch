@@ -6,7 +6,6 @@ FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
 # Set working directory
 WORKDIR /app
 
-
 # Set environment variable to avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -21,15 +20,6 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
     && apt-get clean
-    #git \
-
-# Install system dependencies
-#RUN apt-get update && apt-get install -y \
-#    python3-opencv \
-#    tesseract-ocr \
-#    libgl1-mesa-glx \
-#    libglib2.0-0 \
-#    && apt-get clean
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
@@ -41,10 +31,6 @@ RUN pip install --no-cache-dir \
     ultralytics \
     paddlepaddle \
     paddleocr
-
-# Install YOLOv5 dependencies
-#RUN pip install --no-cache-dir \
-#    git+https://github.com/ultralytics/yolov5.git
 
 # Copy the project files into the container
 COPY ./app/ /app
