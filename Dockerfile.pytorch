@@ -1,0 +1,57 @@
+############################################################
+# STAGE1: Use the official PyTorch image from Docker Hub
+#FROM pytorch/pytorch:2.1.0-cuda11.7-cudnn8-runtime
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+
+# Set working directory
+WORKDIR /app
+
+
+# Set environment variable to avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set timezone to avoid interactive prompt
+ENV TZ=Pacific/Auckland
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    tzdata \
+    python3-opencv \
+    tesseract-ocr \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && apt-get clean
+    #git \
+
+# Install system dependencies
+#RUN apt-get update && apt-get install -y \
+#    python3-opencv \
+#    tesseract-ocr \
+#    libgl1-mesa-glx \
+#    libglib2.0-0 \
+#    && apt-get clean
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    opencv-python \
+    pytesseract \
+    scikit-learn \
+    torch==2.1.0 \
+    torchvision \
+    ultralytics \
+    paddlepaddle \
+    paddleocr
+
+# Install YOLOv5 dependencies
+#RUN pip install --no-cache-dir \
+#    git+https://github.com/ultralytics/yolov5.git
+
+# Copy the project files into the container
+COPY ./app/ /app
+
+# Expose port (optional, for web server or application)
+EXPOSE 8080
+
+# Command to run your application
+#CMD ["python3", "app.py"]
+CMD ["tail", "-f", "/dev/null"]

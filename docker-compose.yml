@@ -1,0 +1,36 @@
+##version: '3.8'
+
+services:
+  pytorch:
+    container_name: pytorch-testing
+    build:
+      context: .
+      dockerfile: Dockerfile.pytorch
+    ports:
+      - "8080:8080"  # Expose port for web or application access
+    networks:
+      - mynetwork
+    volumes:
+      - ./data:/app/data  # Mount local data folder to container
+      #- app_data:/app/data  # Mount named volume to container
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Pacific/Auckland
+    stdin_open: true
+    tty: true
+    #command: python3 app.py  # Start your app or Python script inside the container
+
+# Optional additional services (e.g., for a database or web server)
+# database:
+#   image: postgres
+#   environment:
+#     POSTGRES_PASSWORD: example
+#     POSTGRES_USER: user
+#     POSTGRES_DB: mydb
+
+networks:
+  mynetwork:
+    driver: bridge
+
+# volumes:
+#   app_data:
