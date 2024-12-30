@@ -10,9 +10,7 @@ model_cars = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 model_cars.eval()
 
 # Load the YOLOv5 model for license plate detection
-#model_plates = YOLO('yolov8n.pt')
 model_plates = YOLO('license_plate_detector.pt')
-#model_plates = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
 model_plates.eval()
 
 # Image transformation for YOLOv5
