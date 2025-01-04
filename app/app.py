@@ -21,7 +21,7 @@ model_cars = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 model_cars.eval()
 
 # Load the YOLOv5 model for license plate detection
-model_plates = YOLO('./models/YOLO_license_plate_detector.pt')
+model_plates = YOLO('./YOLO_license_plate_detector.pt')
 model_plates.eval()
 
 # Image transformation for YOLOv5
@@ -104,4 +104,4 @@ def process_image(image_path, output_path):
 
 if __name__ == "__main__":
     # Example of image processing
-    process_image("./car_image.jpg", "./processed_car_image.jpg")
+    process_image("./data/car_image.jpg", "./data/processed_car_image.jpg")

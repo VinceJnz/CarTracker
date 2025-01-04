@@ -11,7 +11,9 @@ services:
     networks:
       - mynetwork
     volumes:
-      - ./data:/app/data  # Mount local data folder to container
+      - ./app/data:/app/data  # Mount local data folder to container
+      - ./app/models:/app/models  # Mount local data folder to container
+      - ./app/src:/app/src  # Mount local data folder to container
       #- app_data:/app/data  # Mount named volume to container
     environment:
       - PYTHONUNBUFFERED=1

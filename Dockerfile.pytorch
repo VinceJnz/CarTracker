@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && apt-get clean
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
+# Install Python dependencies. # default timeout is 15 seconds. This may need to be increased for slow internet connections.
+RUN pip install --no-cache-dir --timeout=1000 \
     opencv-python \
     pytesseract \
     scikit-learn \
