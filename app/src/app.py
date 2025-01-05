@@ -4,6 +4,7 @@ import torch
 import cv2
 import logging
 from torchvision import models, transforms
+from torchvision.ops import nms
 #from torchvision.models import  resnet50, ResNet50_Weights
 from PIL import Image
 from ultralytics import YOLO
@@ -31,12 +32,26 @@ model_plates.eval()
 transform = transforms.Compose([transforms.ToTensor()])
 
 # Function to detect objects (cars)
-def detect_objects_cars(image_path):
+def detect_objects_cars(image_path, iou_threshold=0.5):
     image = Image.open(image_path)
     image_tensor = transform(image).unsqueeze(0)
     with torch.no_grad():
-        prediction = model_cars(image_tensor)
-    return prediction
+        results = model_cars(image_tensor)
+
+    # Extract bounding boxes, confidence scores, and class labels
+    predictions = results[0]
+    boxes = predictions['boxes']
+    scores = predictions['scores']
+    labels = predictions['labels']
+
+    # Apply Non-Maximum Suppression (NMS)
+    keep = nms(boxes, scores, iou_threshold)
+    boxes = boxes[keep].cpu().numpy()
+    scores = scores[keep].cpu().numpy()
+    labels = labels[keep].cpu().numpy()
+    
+    #return prediction
+    return {"image": image, "boxes": boxes, "scores": scores, "labels": labels}
 
 # Function to detect objects (license plates)
 def detect_objects_plates(roi):
@@ -58,15 +73,21 @@ def extract_text_from_image(roi):
 def process_image(image_path, output_path):
     print(f"Processing image: {image_path}")
     results_cars = detect_objects_cars(image_path)
+    boxes = results_cars['boxes']
 
     image = cv2.imread(image_path)
-    for box_car in results_cars[0]['boxes']:
-        c_x1, c_y1, c_x2, c_y2 = box_car.int().numpy()
-        #cv2.rectangle(image, (c_x1, c_y1), (c_x2, c_y2), (0, 255, 0), 2) # Draws bounding box
-        #print(f"Detected car box: {box_car}")
+    #for box_car in results_cars[0]['boxes']:
+    for box_car in boxes:
+        #c_x1, c_y1, c_x2, c_y2 = box_car.int().numpy()
+        c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
 
         # Extract the region of interest (ROI) for the car
         roi_car = image[c_y1:c_y2, c_x1:c_x2]            
+
+        # Check if the ROI has non-zero dimensions
+        if roi_car.shape[0] == 0 or roi_car.shape[1] == 0:
+            print(f"Skipping empty ROI for car: {box_car}")
+            continue
 
         results_plates = detect_objects_plates(roi_car)
         for license_plate in results_plates.boxes.data.tolist():
