@@ -93,9 +93,6 @@ def process_image(image_path, output_path):
     print(f"Processing image: {image_path}")
     image = cv2.imread(image_path)
 
-    # Data structure to store car, plate, and text data
-    car_data = []
-
     #results_cars = detect_objects_cars(image_path)
     results_cars = detect_objects_cars(image)
     boxes = results_cars['boxes']
@@ -130,70 +127,11 @@ def process_image(image_path, output_path):
 
             # Extract text from the ROI
             text, thresh = extract_text_from_image(roi_plate)
-
             if text != "":
                 print(f"Detected license plate text: {text}")
-
-                # Initialize car entry
-                car_entry = {
-                    "car_box": box_car.tolist(),
-                    "plates": []
-                }
-
-                # Add plate data to car entry
-                car_entry["plates"].append({
-                    "plate_box": box_plate.tolist(),
-                    "text": text
-                })
-
-                # Add car entry to car data
-                car_data.append(car_entry)
-
-    # Need to flag if more than one plate is detected and then determine which one is the correct one.
-    # this will need to be done by creating a list of the cars and the plates detected in each car box.
-    # we can then compare the plates detected in each car box to the plates detected in other car boxes.
-    # a car with only one plate detected will likey have the correct plate assigned to it.
-    # if a car has more than one plate detected then we can compare the plates detected in that car box to the plates detected in other car boxes.
-    # this can then be used to remove the false positives.
-    # we will need to set up a suitable data structure to store the car, plate, and text data.
-    # we will only add cars that have plates with text to the data structure.
-
-    # Process car data to remove false positives
-    for car in car_data:
-        #car_box = car["car_box"]
-        plates = car["plates"]
-        if len(plates) > 1:
-            # Compare plates with other cars
-            for other_car in car_data:
-                if other_car == car:
-                    continue
-                #other_car_box = other_car["car_box"]
-                other_plates = other_car["plates"]
-                for plate in plates:
-                    plate_text = plate["text"]
-                    for other_plate in other_plates:
-                        other_plate_text = other_plate["text"]
-                        # Check if the plate is a false positive
-                        if np.array_equal(plate_text, other_plate_text):
-                            print(f"Removing false positive plate: {plate}")
-                            plates.remove(plate)
-                            break
-
-    # Process car data to draw bounding boxes and text
-    for car in car_data:
-        box_car = car["car_box"]
-        plates = car["plates"]
-        c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
-        for plate in plates:
-            box_plate = plate["plate_box"]
-            text = plate["text"]
-            bp_x1, bp_y1, bp_x2, bp_y2 = box_plate.astype(int)
-            p_x1, p_y1, p_x2, p_y2 = bp_x1 + c_x1, bp_y1 + c_y1, bp_x2 + c_x1, bp_y2 + c_y1
-
-            # Extract the region of interest (ROI) for the number plate
-            cv2.rectangle(image, (c_x1, c_y1), (c_x2, c_y2), (0, 255, 0), 2) # Draws CAR bounding box
-            cv2.rectangle(image, (p_x1, p_y1), (p_x2, p_y2), (0, 255, 0), 2) # Draws PLATE bounding box inside the car bounding box
-            cv2.putText(image, text, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+                cv2.rectangle(image, (c_x1, c_y1), (c_x2, c_y2), (0, 255, 0), 2) # Draws CAR bounding box
+                cv2.rectangle(image, (p_x1, p_y1), (p_x2, p_y2), (0, 255, 0), 2) # Draws PLATE bounding box inside the car bounding box
+                cv2.putText(image, text, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
 
     # Save the image with boxes
     cv2.imwrite(output_path, image)
