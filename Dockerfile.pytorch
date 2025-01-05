@@ -2,6 +2,7 @@
 # STAGE1: Use the official PyTorch image from Docker Hub
 #FROM pytorch/pytorch:2.1.0-cuda11.7-cudnn8-runtime
 FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+#FROM nvidia/cuda:11.0-base
 
 # Set working directory
 WORKDIR /app
@@ -40,4 +41,5 @@ EXPOSE 8080
 
 # Command to run your application
 #CMD ["python3", "app.py"]
+#CMD ["python3", "./src/app.py"]
 CMD ["tail", "-f", "/dev/null"]

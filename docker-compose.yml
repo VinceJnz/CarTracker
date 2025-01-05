@@ -20,6 +20,12 @@ services:
       - TZ=Pacific/Auckland
     stdin_open: true
     tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
     #command: python3 app.py  # Start your app or Python script inside the container
 
 # Optional additional services (e.g., for a database or web server)

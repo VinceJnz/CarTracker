@@ -1,3 +1,5 @@
+import os
+import glob
 import torch
 import cv2
 import logging
@@ -130,7 +132,18 @@ def process_image(image_path, output_path):
 
 if __name__ == "__main__":
     # Example of image processing
-    process_image("../data/1car_image.jpg", "../data/1processed_car_image.jpg")
-    process_image("../data/2car_image.jpg", "../data/2processed_car_image.jpg")
-    process_image("../data/3car_image.jpg", "../data/3processed_car_image.jpg")
-    process_image("../data/4car_image.png", "../data/4processed_car_image.jpg")
+    #process_image("../data/1car_image.jpg", "../data/1processed_car_image.jpg")
+    #process_image("../data/2car_image.jpg", "../data/2processed_car_image.jpg")
+    #process_image("../data/3car_image.jpg", "../data/3processed_car_image.jpg")
+    #process_image("../data/4car_image.png", "../data/4processed_car_image.jpg")
+
+    input_folder = "../data"
+    output_folder = "../data/processed"
+    os.makedirs(output_folder, exist_ok=True)
+    input_image_files = glob.glob(os.path.join(input_folder, "*.*"))
+
+    # Process each image file
+    for input_image_file in input_image_files:
+        input_file_name = os.path.basename(input_image_file)
+        output_impage_file = os.path.join(output_folder, f"processed_{input_file_name}")
+        process_image(input_image_file, output_impage_file)
