@@ -149,6 +149,8 @@ def process_image(image_path, output_path):
                 # Add car entry to car data
                 car_data.append(car_entry)
 
+    # Sometimes a car box overlaps more than one car and this results in there being more that one plate in the car box roi
+    #
     # Need to flag if more than one plate is detected and then determine which one is the correct one.
     # this will need to be done by creating a list of the cars and the plates detected in each car box.
     # we can then compare the plates detected in each car box to the plates detected in other car boxes.
