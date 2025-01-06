@@ -80,13 +80,18 @@ def detect_objects_plates(roi, iou_threshold=0.5):
 # Function for OCR (License Plate Text) using PaddleOCR
 def extract_text_from_image(roi):
     # Convert the image to grayscale
-    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    #gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    
     # Perform OCR using PaddleOCR
-    result = ocr.ocr(gray, cls=True)
+    #result = ocr.ocr(gray, cls=True)
+    result = ocr.ocr(roi, cls=True)
     if result == [None]:
-        return "", gray
+        #return "", gray, 0
+        return "", 0
     text = " ".join([line[1][0] for line in result[0]])
-    return text, gray
+    confidence = min([line[1][1] for line in result[0]])
+    #return text, gray, confidence
+    return text, confidence
 
 # Process an image for detection and OCR
 def process_image(image_path, output_path):
@@ -101,7 +106,7 @@ def process_image(image_path, output_path):
     boxes = results_cars['boxes']
 
     #image = cv2.imread(image_path)
-    for box_car in boxes:
+    for car_index, box_car in enumerate(boxes):
         c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
 
         # Extract the region of interest (ROI) for the car
@@ -109,16 +114,16 @@ def process_image(image_path, output_path):
 
         # Check if the ROI has non-zero dimensions
         if roi_car.shape[0] == 0 or roi_car.shape[1] == 0:
-            print(f"Skipping empty ROI for car: {box_car}")
+            #print(f"Skipping empty ROI for car: {box_car}")
             continue
 
-        print(f"Detected car box: {box_car}")
+        #print(f"Detected car box: {box_car}")
         #c_text = f"Detected car box: {box_car}"
 
         results_plates = detect_objects_plates(roi_car)
         boxes_plates = results_plates['boxes']
-        for box_plate in boxes_plates:
-            print(f"Detected plate box: {box_plate}")
+        for plate_index, box_plate in enumerate(boxes_plates):
+            #print(f"Detected plate box: {box_plate}")
             #p_text = f"Detected license plate text: {box_plate}"
             bp_x1, bp_y1, bp_x2, bp_y2 = box_plate.astype(int)
 
@@ -129,21 +134,25 @@ def process_image(image_path, output_path):
             roi_plate = image[p_y1:p_y2, p_x1:p_x2]            
 
             # Extract text from the ROI
-            text, thresh = extract_text_from_image(roi_plate)
+            #text, plate_image, confidence = extract_text_from_image(roi_plate)
+            text, confidence = extract_text_from_image(roi_plate)
 
             if text != "":
-                print(f"Detected license plate text: {text}")
+                #print(f"Detected license plate text: {text}")
 
                 # Initialize car entry
-                car_entry = {
-                    "car_box": box_car.tolist(),
-                    "plates": []
-                }
+                if plate_index == 0:
+                    car_entry = {
+                        "car_id": car_index,
+                        "car_box": box_car, #.tolist(),
+                        "plates": []
+                    }
 
                 # Add plate data to car entry
                 car_entry["plates"].append({
-                    "plate_box": box_plate.tolist(),
-                    "text": text
+                    "plate_box": box_plate, #.tolist(),
+                    "text": text,
+                    "text_confidence": round(confidence, 5)
                 })
 
                 # Add car entry to car data
@@ -161,13 +170,16 @@ def process_image(image_path, output_path):
     # we will only add cars that have plates with text to the data structure.
 
     # Process car data to remove false positives
+    print(f"Starting review of car data/plate")
     for car in car_data:
+        #print(f"Reviewing car: {car}")
         #car_box = car["car_box"]
         plates = car["plates"]
         if len(plates) > 1:
             # Compare plates with other cars
             for other_car in car_data:
-                if other_car == car:
+                #print(f"Reviewing other car: {other_car}")
+                if np.array_equal(other_car["car_box"], car["car_box"]):
                     continue
                 #other_car_box = other_car["car_box"]
                 other_plates = other_car["plates"]
@@ -175,31 +187,36 @@ def process_image(image_path, output_path):
                     plate_text = plate["text"]
                     for other_plate in other_plates:
                         other_plate_text = other_plate["text"]
+                        #print(f"Reviewing plate: {plate}, and other_plate: {other_plate}")
                         # Check if the plate is a false positive
                         if np.array_equal(plate_text, other_plate_text):
-                            print(f"Removing false positive plate: {plate}")
+                            #print(f"Removing false positive plate: {plate}")
                             plates.remove(plate)
                             break
 
     # Process car data to draw bounding boxes and text
+    print(f"Starting drawing boxes and text")
     for car in car_data:
         box_car = car["car_box"]
+        car_id = car["car_id"]
         plates = car["plates"]
         c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
         for plate in plates:
             box_plate = plate["plate_box"]
-            text = plate["text"]
+            text_1 = "car: " + str(car_id) +", plate: " +plate["text"]
+            text_2 = "confidence: " + str(plate["text_confidence"])
             bp_x1, bp_y1, bp_x2, bp_y2 = box_plate.astype(int)
             p_x1, p_y1, p_x2, p_y2 = bp_x1 + c_x1, bp_y1 + c_y1, bp_x2 + c_x1, bp_y2 + c_y1
 
             # Extract the region of interest (ROI) for the number plate
             cv2.rectangle(image, (c_x1, c_y1), (c_x2, c_y2), (0, 255, 0), 2) # Draws CAR bounding box
             cv2.rectangle(image, (p_x1, p_y1), (p_x2, p_y2), (0, 255, 0), 2) # Draws PLATE bounding box inside the car bounding box
-            cv2.putText(image, text, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+            cv2.putText(image, text_1, (p_x1, p_y1-35), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+            cv2.putText(image, text_2, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
 
     # Save the image with boxes
     cv2.imwrite(output_path, image)
-    print(f"Saved processed image to: {output_path}")
+    print(f"Saved processed image to: {output_path}\n")
 
 if __name__ == "__main__":
     # Example of image processing
@@ -207,6 +224,7 @@ if __name__ == "__main__":
 
     input_folder = "../data"
     output_folder = "../data/processed"
+    print(f"Processing images from: {input_folder}, to {output_folder}\n")
     os.makedirs(output_folder, exist_ok=True)
     input_image_files = glob.glob(os.path.join(input_folder, "*.*"))
 
