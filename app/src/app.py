@@ -94,9 +94,8 @@ def extract_text_from_image(roi):
     return text, confidence
 
 # Process an image for detection and OCR
-def process_image(image_path, output_path):
-    print(f"Processing image: {image_path}")
-    image = cv2.imread(image_path)
+def process_image(image, output_path=""):
+    print(f"Processing image started")
 
     # Data structure to store car, plate, and text data
     car_data = []
@@ -215,21 +214,104 @@ def process_image(image_path, output_path):
             cv2.putText(image, text_2, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
 
     # Save the image with boxes
-    cv2.imwrite(output_path, image)
-    print(f"Saved processed image to: {output_path}\n")
+    if output_path!="":
+        cv2.imwrite(output_path, image)
+        print(f"Saved processed image to: {output_path}")
 
-if __name__ == "__main__":
-    # Example of image processing
-    #process_image("../data/car_image.jpg", "../data/processed_car_image.jpg")
+    print(f"Image processing finished\n")
+    return image
+  
 
-    input_folder = "../data"
-    output_folder = "../data/processed"
-    print(f"Processing images from: {input_folder}, to {output_folder}\n")
-    os.makedirs(output_folder, exist_ok=True)
-    input_image_files = glob.glob(os.path.join(input_folder, "*.*"))
+
+# Process video frames
+def process_videos(input_path, output_path, frame_gap=20):
+    print(f"Processing videos from: {input_path}, to {output_path}\n")
+    os.makedirs(output_path, exist_ok=True)
+    input_files = glob.glob(os.path.join(input_path, "*.mp4"))
+
+    print(f"video file path list: {input_files}")
+
+    # Process each image file
+    for input_file_path in input_files:
+        input_file_name = os.path.basename(input_file_path)
+        output_file_path = os.path.join(output_path, f"processed_{input_file_name}")
+
+        print(f"video file paths: {input_file_path}, {output_file_path}")
+
+        cap = cv2.VideoCapture(input_file_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video file {input_file_path}")
+            return
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_file_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
+        frame_num = 0
+        next_frame = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            if frame_num != next_frame:
+                frame_num += 1
+                continue
+
+            next_frame = frame_num + frame_gap
+            print(f"processing frame: {frame_num}")
+            # Process the frame
+            #output_image_file_path = os.path.join(output_path, f"processed_{input_file_name}_{str(frame_num)}.jpg")
+            processed_frame = process_image(frame)
+
+            # Check if processed_frame is None
+            if processed_frame is None:
+                print(f"Error processing frame {frame_num}")
+                frame_num += 1
+                continue
+
+            #height, width, channels = processed_frame.shape
+            #size = processed_frame.size
+            #print(f"Processed frame shape: Height: {height}, Width: {width}, Channels: {channels}")
+            #print(f"Processed frame size: {size} pixels")
+
+            # Write the processed frame to the output video
+            out.write(processed_frame)
+            frame_num += 1
+
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
+    print(f"Processing videos finished\n")
+    
+
+# Process video frames
+def process_images(input_path, output_path):
+    print(f"Processing images from: {input_path}, to {output_path}\n")
+    os.makedirs(output_path, exist_ok=True)
+
+    #input_image_files = glob.glob(os.path.join(input_path, "*.jpg"))
+    # Define the list of file extensions
+    extensions = ["*.jpg", "*.jpeg", "*.png"]
+
+    # Collect all files with the specified extensions
+    input_image_files = []
+    for ext in extensions:
+        input_image_files.extend(glob.glob(os.path.join(input_path, ext)))
 
     # Process each image file
     for input_image_file in input_image_files:
         input_file_name = os.path.basename(input_image_file)
-        output_impage_file = os.path.join(output_folder, f"processed_{input_file_name}")
-        process_image(input_image_file, output_impage_file)
+        output_file_name = os.path.join(output_path, f"processed_{input_file_name}")
+        print(f"Processing image: {input_file_name}, to {output_file_name}")
+        image = cv2.imread(input_image_file)
+        process_image(image, output_file_name)
+
+
+if __name__ == "__main__":
+    print(f"Processing has started\n")
+
+    input_folder = "../data"
+    output_folder = "../data/processed"
+    process_videos(input_folder, output_folder)
+
+    process_images(input_folder, output_folder)
+
