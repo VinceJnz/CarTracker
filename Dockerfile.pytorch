@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    ffmpeg \
     && apt-get clean
 
 # Install Python dependencies. # default timeout is 15 seconds. This may need to be increased for slow internet connections.
@@ -31,7 +32,8 @@ RUN pip install --no-cache-dir --timeout=1000 \
     torchvision \
     ultralytics \
     paddlepaddle \
-    paddleocr
+    paddleocr \
+    ffmpeg-python
 
 # Copy the project files into the container
 COPY ./app/ /app

@@ -11,3 +11,11 @@ logs
 Server*
 log*.txt
 .env
+*.MP4
+*.mp4
+*.avi
+*.mov
+*.flv
+*.wmv
+*.3gp
+*.mkv
