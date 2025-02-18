@@ -1,12 +1,3 @@
-# CarTracker
+# Car tracker
 
-
-## GPU
-To check the nvida gpu
-
-run the following command `nvidia-smi`
-
-
-## Hardware
-
-<https://shop.luxonis.com/>
+# Take a video feed and extract vehicle number plates
