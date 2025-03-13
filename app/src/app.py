@@ -33,6 +33,8 @@ model_plates.eval()
 # Image transformation for YOLOv5
 transform = transforms.Compose([transforms.ToTensor()])
 
+TestImageCount = 0
+
 # Function to detect objects (cars)
 #def detect_objects_cars(image_path, iou_threshold=0.5):
 def detect_objects_cars(image_cv2, iou_threshold=0.5):
@@ -95,6 +97,7 @@ def extract_text_from_image(roi):
 
 # Process an image for detection and OCR
 def process_image(image, output_path=""):
+    global TestImageCount
     print(f"Processing image started")
 
     # Data structure to store car, plate, and text data
@@ -169,32 +172,72 @@ def process_image(image, output_path=""):
     # we will only add cars that have plates with text to the data structure.
 
     # Process car data to remove false positives
+    #print(f"Starting review of car data/plate")
+    #for car in car_data:
+    #    # Reviewing car
+    #    plates = car["plates"]
+    #    print(f"plates: {plates}", type(plates))
+    #    if len(plates) > 1:
+    #        # Create a new list to store plates to keep
+    #        #plates_to_keep = []
+    #        plates_to_keep = plates.copy() # Create a copy of the plates list, need to use copy() to avoid reference to the original list
+
+    #        for plate in plates:
+    #            plate_text = plate["text"]
+    #            plate_confidence = plate["text_confidence"]
+
+    #            # Compare plates with other cars
+    #            for other_car in car_data:
+    #                # Reviewing other car
+    #                if np.array_equal(other_car["car_box"], car["car_box"]):
+    #                    continue
+    #                other_plates = other_car["plates"]
+
+    #            #for plate in plates:
+    #            #    plate_text = plate["text"]
+    #                for other_plate in other_plates:
+    #                    other_plate_text = other_plate["text"]
+    #                    other_plate_confidence = other_plate["text_confidence"]
+    #                    # Check if the plate is a false positive
+    #                    if plate_text == other_plate_text: # and plate_confidence < other_plate_confidence:
+    #                        # Removing false positive plate
+    #                        plates_to_keep.remove(plate)
+    #                        break
+    #        car["plates"] = plates_to_keep
+    #        print(f"updated plates: {plates_to_keep}", type(plates_to_keep))
+
+
     print(f"Starting review of car data/plate")
     for car in car_data:
-        #print(f"Reviewing car: {car}")
-        #car_box = car["car_box"]
         plates = car["plates"]
         if len(plates) > 1:
-            # Compare plates with other cars
-            for other_car in car_data:
-                #print(f"Reviewing other car: {other_car}")
-                if np.array_equal(other_car["car_box"], car["car_box"]):
-                    continue
-                #other_car_box = other_car["car_box"]
-                other_plates = other_car["plates"]
-                for plate in plates:
-                    plate_text = plate["text"]
+            # Create a new list to store plates to keep
+            plates_to_keep = []
+            for plate in plates:
+                plate_text = plate["text"]
+                is_false_positive = False
+                for other_car in car_data:
+                    if np.array_equal(other_car["car_box"], car["car_box"]):
+                        continue
+                    other_plates = other_car["plates"]
                     for other_plate in other_plates:
                         other_plate_text = other_plate["text"]
-                        #print(f"Reviewing plate: {plate}, and other_plate: {other_plate}")
-                        # Check if the plate is a false positive
-                        if np.array_equal(plate_text, other_plate_text):
-                            #print(f"Removing false positive plate: {plate}")
-                            plates.remove(plate)
+                        if plate_text == other_plate_text:
+                            is_false_positive = True
                             break
+                    if is_false_positive:
+                        break
+                if not is_false_positive:
+                    plates_to_keep.append(plate)
+            # Replace the original plates list with the filtered list
+            car["plates"] = plates_to_keep
+            print(f"updated plates: {plates_to_keep}", type(plates_to_keep))
+
 
     # Process car data to draw bounding boxes and text
     print(f"Starting drawing boxes and text")
+    # Debugging
+    image1 = image.copy()
     for car in car_data:
         box_car = car["car_box"]
         car_id = car["car_id"]
@@ -212,6 +255,17 @@ def process_image(image, output_path=""):
             cv2.rectangle(image, (p_x1, p_y1), (p_x2, p_y2), (0, 255, 0), 2) # Draws PLATE bounding box inside the car bounding box
             cv2.putText(image, text_1, (p_x1, p_y1-35), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
             cv2.putText(image, text_2, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+
+            # Debugging - Extract the region of interest (ROI) for the number plate
+            image2 = image1.copy()
+            cv2.rectangle(image2, (c_x1, c_y1), (c_x2, c_y2), (0, 255, 0), 2) # Draws CAR bounding box
+            cv2.rectangle(image2, (p_x1, p_y1), (p_x2, p_y2), (0, 255, 0), 2) # Draws PLATE bounding box inside the car bounding box
+            cv2.putText(image2, text_1, (p_x1, p_y1-35), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+            cv2.putText(image2, text_2, (p_x1, p_y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2) # Draws PLATE text above the plate bounding box
+            TestImageCount += 1
+            fileName = "../data/processed/ImageAnalysis/Image" + str(TestImageCount) + ".jpg"
+            print(f"Saving processed image to: {fileName}")
+            cv2.imwrite(fileName, image2)
 
     # Save the image with boxes
     if output_path!="":
@@ -260,6 +314,9 @@ def process_videos(input_path, output_path, frame_gap=20):
             print(f"processing frame: {frame_num}")
             # Process the frame
             #output_image_file_path = os.path.join(output_path, f"processed_{input_file_name}_{str(frame_num)}.jpg")
+
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+
             processed_frame = process_image(frame)
 
             # Check if processed_frame is None
