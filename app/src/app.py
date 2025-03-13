@@ -107,10 +107,13 @@ def process_image(image, output_path=""):
     #results_cars = detect_objects_cars(image_path)
     results_cars = detect_objects_cars(image) #???????????? Need to update this to be able to use confidences in the output. ????????????
     boxes = results_cars['boxes']
+    scores = results_cars['scores']
+    labels = results_cars['labels']
+    print(f"results_cars: {results_cars}, boxes: {boxes}, scores: {scores}, labels: {labels}")
 
     #image = cv2.imread(image_path)
-    for car_index, box_car in enumerate(boxes):
-        c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
+    for car_index, (car_box, car_score) in enumerate(zip(boxes, scores)):
+        c_x1, c_y1, c_x2, c_y2 = car_box.astype(int)
 
         # Extract the region of interest (ROI) for the car
         roi_car = image[c_y1:c_y2, c_x1:c_x2]            
@@ -120,14 +123,9 @@ def process_image(image, output_path=""):
             #print(f"Skipping empty ROI for car: {box_car}")
             continue
 
-        #print(f"Detected car box: {box_car}")
-        #c_text = f"Detected car box: {box_car}"
-
         results_plates = detect_objects_plates(roi_car)
         boxes_plates = results_plates['boxes']
         for plate_index, box_plate in enumerate(boxes_plates):
-            #print(f"Detected plate box: {box_plate}")
-            #p_text = f"Detected license plate text: {box_plate}"
             bp_x1, bp_y1, bp_x2, bp_y2 = box_plate.astype(int)
 
             # Adjust coordinates relative to the original image
@@ -137,7 +135,6 @@ def process_image(image, output_path=""):
             roi_plate = image[p_y1:p_y2, p_x1:p_x2]            
 
             # Extract text from the ROI
-            #text, plate_image, confidence = extract_text_from_image(roi_plate)
             text, confidence = extract_text_from_image(roi_plate)
 
             if text != "":
@@ -147,7 +144,8 @@ def process_image(image, output_path=""):
                 if plate_index == 0:
                     car_entry = {
                         "car_id": car_index,
-                        "car_box": box_car, #.tolist(),
+                        "car_box": car_box, #.tolist(),
+                        "car_score": car_score,
                         "plates": []
                     }
 
@@ -268,14 +266,11 @@ def process_image(image, output_path=""):
     # Debugging
     image1 = image.copy()
     for car in car_data:
-        box_car = car["car_box"]
-        car_id = car["car_id"]
-        plates = car["plates"]
-        c_x1, c_y1, c_x2, c_y2 = box_car.astype(int)
-        for plate in plates:
+        c_x1, c_y1, c_x2, c_y2 = car["car_box"].astype(int)
+        for plate in car["plates"]:
             box_plate = plate["plate_box"]
-            text_1 = "car: " + str(car_id) +", plate: " +plate["text"]
-            text_2 = "confidence: " + str(plate["text_confidence"])
+            text_1 = "car: " + str(car["car_id"]) +", confidence: "+ str(car["car_score"])
+            text_2 =  "plate: " + plate["text"] + ", confidence: " + str(plate["text_confidence"])
             bp_x1, bp_y1, bp_x2, bp_y2 = box_plate.astype(int)
             p_x1, p_y1, p_x2, p_y2 = bp_x1 + c_x1, bp_y1 + c_y1, bp_x2 + c_x1, bp_y2 + c_y1
 
@@ -309,6 +304,7 @@ def process_image(image, output_path=""):
 def case_insensitive_file_list(path, pattern):
     input_path = Path(path)
     files = [str(f) for f in input_path.iterdir() if f.is_file() and f.name.lower().endswith(pattern)]
+    #files = [str(f) for f in input_path.iterdir() if f.is_file() and f.name.lower().endswith(".mp4")]
     return files
 
 
@@ -318,7 +314,7 @@ def process_videos(input_path, output_path, frame_gap=20):
     os.makedirs(output_path, exist_ok=True)
 
     # Use the case_insensitive function to get the input files
-    input_files = case_insensitive_file_list(input_path, "*.mp4")
+    input_files = case_insensitive_file_list(input_path, ".mp4")
     print(f"video file path list: {input_files}")
 
     # Process each image file
@@ -381,12 +377,12 @@ def process_images(input_path, output_path):
     os.makedirs(output_path, exist_ok=True)
 
     # Define the list of file extensions
-    extensions = ["*.jpg", "*.jpeg", "*.png"]
+    extensions = [".jpg", ".jpeg", ".png"]
 
     # Collect all files with the specified extensions
     input_image_files = []
     for ext in extensions:
-        input_image_files.extend(case_insensitive_file_list(input_path, "*.mp4"))
+        input_image_files.extend(case_insensitive_file_list(input_path, ext))
         #input_image_files.extend(glob.glob(os.path.join(input_path, ext)))
 
     # Process each image file
