@@ -105,7 +105,7 @@ def process_image(image, output_path=""):
     car_data = []
 
     #results_cars = detect_objects_cars(image_path)
-    results_cars = detect_objects_cars(image)
+    results_cars = detect_objects_cars(image) #???????????? Need to update this to be able to use confidences in the output. ????????????
     boxes = results_cars['boxes']
 
     #image = cv2.imread(image_path)
