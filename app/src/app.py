@@ -1,5 +1,6 @@
 import os
-import glob
+#import glob
+from pathlib import Path
 import torch
 import cv2
 import logging
@@ -204,15 +205,18 @@ def process_image(image, output_path=""):
     #                        plates_to_keep.remove(plate)
     #                        break
     #        car["plates"] = plates_to_keep
-    #        print(f"updated plates: {plates_to_keep}", type(plates_to_keep))
+    #        print(f"updated plates: {car['plates']}", type(car['plates']))
 
 
-    print(f"Starting review of car data/plate")
+    print(f"Starting review of car/plate data")
     for car in car_data:
         plates = car["plates"]
+        print(f"plates: {plates}, plates type: {type(plates)}, car type: {type(car)}")
         if len(plates) > 1:
             # Create a new list to store plates to keep
             plates_to_keep = []
+            # Create a dictionary to store the highest confidence plate for each text
+            #highest_confidence_plates = {}
             for plate in plates:
                 plate_text = plate["text"]
                 is_false_positive = False
@@ -223,16 +227,41 @@ def process_image(image, output_path=""):
                     for other_plate in other_plates:
                         other_plate_text = other_plate["text"]
                         if plate_text == other_plate_text:
-                            is_false_positive = True
-                            break
+                           is_false_positive = True
+                           break
                     if is_false_positive:
                         break
                 if not is_false_positive:
+                    #if plate_text not in highest_confidence_plates or plate["text_confidence"] > highest_confidence_plates[plate_text]["text_confidence"]:
+                    #    highest_confidence_plates[plate_text] = plate
                     plates_to_keep.append(plate)
             # Replace the original plates list with the filtered list
             car["plates"] = plates_to_keep
-            print(f"updated plates: {plates_to_keep}", type(plates_to_keep))
-
+            #car["plates"] = list(highest_confidence_plates.values())
+            print(f"updated plates: {car['plates']}", type(car['plates']))
+    
+    print(f"car_data: {car_data}, type {type(car_data)}")
+    # Process car data to keep only the plate with the highest confidence for each unique plate text
+    print(f"Starting review of car data")
+    # Create a dictionary to store the highest confidence plate for each text
+    highest_confidence_car = {}
+    for car in car_data:
+        plates = car["plates"]
+        print(f"plates: {plates}", type(plates))
+        for plate1 in plates:
+            print(f"plate1: {plate1}", type(plate1))
+            plate1_text = plate1["text"]
+            if plate1_text not in highest_confidence_car:
+                highest_confidence_car[plate1_text] = car
+            else:
+                print(f"plate1_text: {plate1_text}, highest_confidence_car: {highest_confidence_car[plate1_text]}")
+                for plate2 in highest_confidence_car[plate1_text]["plates"]:
+                    if plate2["text_confidence"] > plate1["text_confidence"]:
+                        highest_confidence_car[plate1_text] = car
+                        break
+        # Replace the original plates list with the filtered list
+    car_data = list(highest_confidence_car.values())
+    print(f"updated car_data: {car_data}, type {type(car_data)}")
 
     # Process car data to draw bounding boxes and text
     print(f"Starting drawing boxes and text")
@@ -276,13 +305,20 @@ def process_image(image, output_path=""):
     return image
   
 
+# Function to get a list of files with a case-insensitive glob pattern
+def case_insensitive_file_list(path, pattern):
+    input_path = Path(path)
+    files = [str(f) for f in input_path.iterdir() if f.is_file() and f.name.lower().endswith(pattern)]
+    return files
+
 
 # Process video frames
 def process_videos(input_path, output_path, frame_gap=20):
     print(f"Processing videos from: {input_path}, to {output_path}\n")
     os.makedirs(output_path, exist_ok=True)
-    input_files = glob.glob(os.path.join(input_path, "*.mp4"))
 
+    # Use the case_insensitive function to get the input files
+    input_files = case_insensitive_file_list(input_path, "*.mp4")
     print(f"video file path list: {input_files}")
 
     # Process each image file
@@ -315,8 +351,7 @@ def process_videos(input_path, output_path, frame_gap=20):
             # Process the frame
             #output_image_file_path = os.path.join(output_path, f"processed_{input_file_name}_{str(frame_num)}.jpg")
 
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
-
+            frame = cv2.rotate(frame, cv2.ROTATE_180) # Rotate the frame 180 degrees only if needed.
             processed_frame = process_image(frame)
 
             # Check if processed_frame is None
@@ -345,14 +380,14 @@ def process_images(input_path, output_path):
     print(f"Processing images from: {input_path}, to {output_path}\n")
     os.makedirs(output_path, exist_ok=True)
 
-    #input_image_files = glob.glob(os.path.join(input_path, "*.jpg"))
     # Define the list of file extensions
     extensions = ["*.jpg", "*.jpeg", "*.png"]
 
     # Collect all files with the specified extensions
     input_image_files = []
     for ext in extensions:
-        input_image_files.extend(glob.glob(os.path.join(input_path, ext)))
+        input_image_files.extend(case_insensitive_file_list(input_path, "*.mp4"))
+        #input_image_files.extend(glob.glob(os.path.join(input_path, ext)))
 
     # Process each image file
     for input_image_file in input_image_files:
@@ -368,7 +403,7 @@ if __name__ == "__main__":
 
     input_folder = "../data"
     output_folder = "../data/processed"
-    process_videos(input_folder, output_folder)
+    process_videos(input_folder, output_folder, 20*40)
 
     process_images(input_folder, output_folder)
 
