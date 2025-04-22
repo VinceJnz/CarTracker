@@ -371,6 +371,70 @@ def process_videos(input_path, output_path, frame_gap=20):
     print(f"Processing videos finished\n")
     
 
+def rotate_video(input_path, output_path, angle):
+    print(f"Processing videos from: {input_path}, to {output_path}\n")
+    os.makedirs(output_path, exist_ok=True)
+
+    # Use the case_insensitive function to get the input files
+    input_files = case_insensitive_file_list(input_path, ".mp4")
+    print(f"video file path list: {input_files}")
+
+    # Define rotation mappings based on the angle
+    rotation_mapping = {
+        90: cv2.ROTATE_90_CLOCKWISE,
+        180: cv2.ROTATE_180,
+        270: cv2.ROTATE_90_COUNTERCLOCKWISE
+    }
+
+    # Check if the angle is valid
+    if angle not in rotation_mapping:
+        print(f"Error: Unsupported rotation angle {angle}. Supported angles are 90, 180, and 270.")
+        return
+
+    # Get the appropriate rotation code
+    rotation_code = rotation_mapping[angle]
+
+    # Process each image file
+    for input_file_path in input_files:
+        input_file_name = os.path.basename(input_file_path)
+        output_file_path = os.path.join(output_path, f"processed_{input_file_name}")
+
+        print(f"video file paths: {input_file_path}, {output_file_path}")
+
+        cap = cv2.VideoCapture(input_file_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video file {input_file_path}")
+            return
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_file_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
+        frame_num = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_num += 1
+            
+            frame = cv2.rotate(frame, rotation_code) # Rotate the frame 180 degrees only if needed.
+
+            # Check if processed_frame is None
+            if frame is None:
+                print(f"Error processing frame {frame_num}")
+                continue
+
+            # Write the processed frame to the output video
+            out.write(frame)
+
+        cap.release()
+        out.release()
+        cv2.destroyAllWindows()
+    print(f"Processing videos finished\n")
+
+
+
+
+
 # Process video frames
 def process_images(input_path, output_path):
     print(f"Processing images from: {input_path}, to {output_path}\n")
