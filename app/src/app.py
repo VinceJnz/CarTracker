@@ -309,7 +309,7 @@ def case_insensitive_file_list(path, pattern):
 
 
 # Process video frames
-def process_videos(input_path, output_path, frame_gap=20):
+def process_videos(input_path, output_path, frame_gap=20, rotate=False):
     print(f"Processing videos from: {input_path}, to {output_path}\n")
     os.makedirs(output_path, exist_ok=True)
 
@@ -347,7 +347,10 @@ def process_videos(input_path, output_path, frame_gap=20):
             # Process the frame
             #output_image_file_path = os.path.join(output_path, f"processed_{input_file_name}_{str(frame_num)}.jpg")
 
-            frame = cv2.rotate(frame, cv2.ROTATE_180) # Rotate the frame 180 degrees only if needed.
+            # Add this line in if the frame is upside down and needs to be rotated.
+            if rotate:
+                frame = cv2.rotate(frame, cv2.ROTATE_180) # Rotate the frame 180 degrees only if needed.
+            
             processed_frame = process_image(frame)
 
             # Check if processed_frame is None
@@ -463,7 +466,8 @@ if __name__ == "__main__":
 
     input_folder = "../data"
     output_folder = "../data/processed"
-    process_videos(input_folder, output_folder, 20*40)
+    #process_videos(input_folder, output_folder, 20*40, rotate=True)
+    process_videos(input_folder, output_folder, 10, rotate=False)
 
     process_images(input_folder, output_folder)
 
