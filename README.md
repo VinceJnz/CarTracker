@@ -28,55 +28,26 @@ Set up an algorythm that looks at an area of an image an tries to match it with 
 
 
 Step-by-Step: Run AnyNet in Docker (GPU-accelerated, PyTorch-only)
-1. Clone the AnyNet Repository
-`git clone https://github.com/mileyan/AnyNet.git`
+1. Clone the Recommended Model: PSMNet (Pyramid Stereo Matching Network) Repository
+`git clone https://github.com/JiaRenChang/PSMNet.git`
 
-2. Create Dockerfile
-```bash
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+2. Download pretrained weights. Download the SceneFlow pretrained model from:
+`https://drive.google.com/file/d/1pHWjmhKMG4ffCrpcsp_MTXMJXhgl3kF9/view`
 
-# Install system packages
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip python3-dev python3-opencv git ffmpeg libsm6 libxext6 \
-    && rm -rf /var/lib/apt/lists/*
+3. Adjust for your GPU:
+The GTX 960 has 4GB VRAM, so you may need to:
 
-# Set Python 3 as default
-RUN ln -s /usr/bin/python3 /usr/bin/python
+Reduce batch size (use 1)
 
-# Set working directory
-WORKDIR /app
+Process smaller image patches if needed
 
-# Copy code into container
-COPY . .
-
-# Install Python packages
-RUN pip install --upgrade pip
-RUN pip install torch torchvision opencv-python matplotlib tqdm
-
-# Entry point — you can override this when running
-CMD ["python", "demo.py"]
-```
+Use maxdisp=96 instead of 192 for lower resolution
 
 3. Prepare Demo Images
-Put your stereo pair into the AnyNet/ directory or a subfolder. The code expects image pairs like im0.png and im1.png.
+Put your stereo pair into the data\stereo\ directory or a subfolder. The code expects image pairs like im0.png and im1.png.
 
 If needed, rename your stereo images accordingly.
 
-4. Download Pretrained Model (on host)
-`wget https://www.dropbox.com/s/5p8k5z9hw0qf4p4/anynet_final.tar -O checkpoints/anynet_final.tar`
-
-5. Build the Docker Image
-`docker build -t anynet-pytorch .`
-
-6. Run the Docker Container with GPU Access
-```bash
-docker run --rm --gpus all \
-  -v $(pwd):/app \
-  anynet-pytorch \
-  python demo.py --datapath ./ --loadmodel checkpoints/anynet_final.tar
-```
-
-7. Optional Improvements
-* You can modify demo.py to output disparity images to a file rather than display them.
-* You can mount an external folder for input/output images using -v.
+5. Build the Docker Image and connect to it
+See "set up docker..." above
 
