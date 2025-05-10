@@ -22,3 +22,8 @@ docker exec -it <container_name_or_id> /bin/bash
 
 
 
+## Stereo vision
+
+Set up an algorythm that looks at an area of an image an tries to match it with an area of a second image taken from a slightly different location.
+
+
