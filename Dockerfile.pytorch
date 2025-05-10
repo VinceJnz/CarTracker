@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
     ffmpeg \
+    wget \
     && apt-get clean
 
 # Install Python dependencies. # default timeout is 15 seconds. This may need to be increased for slow internet connections.
@@ -33,7 +34,8 @@ RUN pip install --no-cache-dir --timeout=1000 \
     ultralytics \
     paddlepaddle \
     paddleocr \
-    ffmpeg-python
+    ffmpeg-python \
+    numpy
 
 # Copy the project files into the container
 COPY ./app/ /app
